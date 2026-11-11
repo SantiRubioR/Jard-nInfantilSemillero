@@ -1,0 +1,117 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand: #2f71ce;
+  --color-brand-dark: #1e4e8c;
+  --color-brand-deep: #163a6b;
+  --color-brand-light: #bdd9ff;
+  --color-brand-50: #eef5ff;
+  --color-brand-100: #dbeaff;
+  --color-accent: #ffd874;
+  --color-accent-dark: #f2c14e;
+  --color-surface: #ffffff;
+  --color-muted: #f5f7fa;
+  --color-border: #d7dde8;
+  --color-foreground: #1f2937;
+  --color-muted-foreground: #5b6577;
+  --color-danger: #d92d20;
+  --color-success: #16803c;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-card: 1rem;
+  --shadow-card: 0 10px 30px -12px rgb(22 58 107 / 0.18);
+  --shadow-soft: 0 4px 18px -8px rgb(22 58 107 / 0.22);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-surface);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  ::selection {
+    background-color: var(--color-brand-light);
+    color: var(--color-brand-deep);
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-accent-dark);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .container-page {
+    width: 100%;
+    max-width: 80rem;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .container-page {
+      padding-inline: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container-page {
+      padding-inline: 2rem;
+    }
+  }
+
+  .prose-institucional {
+    color: var(--color-muted-foreground);
+    line-height: 1.75;
+  }
+
+  .prose-institucional p + p {
+    margin-top: 1rem;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.55s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .animate-fade-up {
+    animation: none;
+  }
+}
