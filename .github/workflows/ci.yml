@@ -1,13 +1,17 @@
 name: CI
 
 on:
-  push:
-    branches: ["main"]
   pull_request:
+  # Permite que deploy.yml reutilice este workflow después del merge a main.
+  workflow_call:
+
+permissions:
+  contents: read
 
 jobs:
   quality:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -15,7 +19,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
 
       - name: Install dependencies

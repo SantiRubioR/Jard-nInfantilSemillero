@@ -1,0 +1,121 @@
+name: Deploy
+
+on:
+  # Se ejecuta cada vez que entra un cambio a main (merge de un PR o push directo).
+  push:
+    branches: ["main"]
+  # Permite desplegar manualmente desde la pestaña Actions.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Evita dos despliegues simultáneos. No cancela el que está en curso.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  # Reutiliza el workflow de CI: si lint, tipos, pruebas, arquitectura o build
+  # fallan, el despliegue no se ejecuta.
+  quality:
+    name: Calidad
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    name: Desplegar en HelioHost
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment:
+      name: production
+      url: ${{ vars.NEXT_PUBLIC_SITE_URL }}
+    env:
+      # Las variables NEXT_PUBLIC_* se incrustan en el HTML/JS público.
+      # Por eso viven en "Variables", no en "Secrets".
+      NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
+      NEXT_PUBLIC_WHATSAPP_NUMBER: ${{ vars.NEXT_PUBLIC_WHATSAPP_NUMBER }}
+      NEXT_PUBLIC_MAP_QUERY: ${{ vars.NEXT_PUBLIC_MAP_QUERY }}
+      NEXT_PUBLIC_DEMO_MODE: ${{ vars.NEXT_PUBLIC_DEMO_MODE }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validar configuración del despliegue
+        env:
+          HELIOHOST_USER: ${{ vars.HELIOHOST_USER }}
+          HELIOHOST_PASSWORD: ${{ secrets.HELIOHOST_PASSWORD }}
+        run: |
+          missing=0
+          for name in \
+            NEXT_PUBLIC_SUPABASE_URL \
+            NEXT_PUBLIC_SUPABASE_ANON_KEY \
+            NEXT_PUBLIC_SITE_URL \
+            HELIOHOST_USER \
+            HELIOHOST_PASSWORD; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::Falta configurar $name en Settings → Secrets and variables → Actions."
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Build estático
+        run: npm run build
+
+      - name: Instalar lftp
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lftp
+
+      - name: Configurar credenciales SFTP
+        env:
+          HELIOHOST_HOST: ${{ vars.HELIOHOST_HOST }}
+          HELIOHOST_USER: ${{ vars.HELIOHOST_USER }}
+          HELIOHOST_PASSWORD: ${{ secrets.HELIOHOST_PASSWORD }}
+        run: |
+          host="${HELIOHOST_HOST:-johnny.heliohost.org}"
+          umask 077
+          {
+            printf 'machine %s\n' "$host"
+            printf '  login %s\n' "$HELIOHOST_USER"
+            printf '  password %s\n' "$HELIOHOST_PASSWORD"
+          } > "$HOME/.netrc"
+          chmod 600 "$HOME/.netrc"
+
+      - name: Subir out/ a HelioHost
+        env:
+          HELIOHOST_HOST: ${{ vars.HELIOHOST_HOST }}
+          HELIOHOST_PORT: ${{ vars.HELIOHOST_PORT }}
+          HELIOHOST_USER: ${{ vars.HELIOHOST_USER }}
+          HELIOHOST_REMOTE: ${{ vars.HELIOHOST_REMOTE }}
+          HELIOHOST_DELETE: ${{ vars.HELIOHOST_DELETE }}
+        run: |
+          # --delete elimina en el servidor lo que ya no exista en out/.
+          # Está desactivado por defecto para no borrar archivos ajenos al build.
+          if [ "${HELIOHOST_DELETE:-false}" = "true" ]; then
+            bash scripts/upload-heliohost.sh --delete
+          else
+            bash scripts/upload-heliohost.sh
+          fi
+
+      - name: Resumen del despliegue
+        run: |
+          {
+            echo "## Despliegue completado"
+            echo ""
+            echo "- Commit: \`$GITHUB_SHA\`"
+            echo "- Sitio: $NEXT_PUBLIC_SITE_URL"
+            echo "- Run: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          } >> "$GITHUB_STEP_SUMMARY"
