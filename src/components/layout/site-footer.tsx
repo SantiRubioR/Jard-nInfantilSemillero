@@ -53,7 +53,10 @@ export function SiteFooter() {
             </li>
             <li className="flex gap-2.5">
               <Phone className="mt-0.5 h-4 w-4 shrink-0 text-accent" aria-hidden="true" />
-              <a href={`tel:${siteConfig.contact.phoneHref}`} className="hover:underline">
+              <a href={`https://wa.me/${siteConfig.contact.phoneHref.replace(/\D/g, "")}?text=${encodeURIComponent("Estoy interesado en conocer el Jardín Infantil Semillero")}`}
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="hover:underline">
                 {siteConfig.contact.phone}
               </a>
             </li>
@@ -84,15 +87,7 @@ export function SiteFooter() {
             >
               <Facebook className="h-5 w-5" />
             </a>
-            <a
-              href={siteConfig.social.instagram}
-              target="_blank"
-              rel="noreferrer"
-              aria-label="Instagram del Jardín Infantil Semillero"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-accent text-brand-deep transition-transform hover:scale-105"
-            >
-              <Instagram className="h-5 w-5" />
-            </a>
+            
             <a
               href={`mailto:${siteConfig.contact.email}`}
               aria-label="Enviar correo al Jardín Infantil Semillero"

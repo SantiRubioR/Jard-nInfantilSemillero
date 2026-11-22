@@ -15,7 +15,7 @@ export const siteConfig = {
     hours: "Lunes a viernes, 8:00 a.m. a 4:00 p.m.",
   },
   social: {
-    facebook: "https://www.facebook.com/",
+    facebook: "https://www.facebook.com/profile.php?id=100063587289745&locale=es_LA",
     instagram: "https://www.instagram.com/",
   },
   nav: [
@@ -31,10 +31,8 @@ export const whatsappUrl = `https://wa.me/${siteConfig.contact.whatsapp}?text=${
   "Estoy interesado en conocer el Jardín Infantil Semillero",
 )}`;
 
-export const mapQuery =
-  process.env.NEXT_PUBLIC_MAP_QUERY ??
-  "Mza M casa 6 Barrio Jordan 9a Etapa, Ibague, Tolima, Colombia";
+export const mapQuery = "4.4427444,-75.2014027";
 
 export const mapEmbedUrl = `https://www.google.com/maps?q=${encodeURIComponent(
-  mapQuery,
-)}&output=embed`;
+  mapQuery
+)}&z=17&output=embed`;
