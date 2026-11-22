@@ -116,6 +116,9 @@ export function SiteFooter() {
             © {new Date().getFullYear()} {siteConfig.name} de Ibagué. Todos los derechos
             reservados.
           </p>
+          <p className="rounded-full bg-white/10 px-3 py-1 font-medium">
+            Despliegue automático verificado · {new Date().toISOString().slice(0, 10)}
+          </p>
           <p>Hecho con cariño para nuestra comunidad educativa.</p>
         </div>
       </div>
