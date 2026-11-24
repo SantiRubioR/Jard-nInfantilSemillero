@@ -101,21 +101,21 @@ export const uniforms = [
   {
     title: "Uniforme de diario - Niños",
     image:
-      "https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=900&q=80",
+      "/uniforme-diario-ninos.jpeg",
     description:
       "Compuesto por pantalón institucional, camisa blanca de cuello y zapatos escolares. Promueve la formalidad y el sentido de pertenencia.",
   },
   {
     title: "Uniforme de diario - Niñas",
     image:
-      "https://images.unsplash.com/photo-1594608661623-aa0bd3a69d98?auto=format&fit=crop&w=900&q=80",
+      "/uniforme-diario-ninas.jpeg",
     description:
       "Compuesto por jardinería, camisa blanca de cuello, medias blancas y zapatos escolares. Promueve la formalidad y el sentido de pertenencia.",
   },
   {
     title: "Uniforme de educación física - Mixto",
     image:
-      "https://images.unsplash.com/photo-1571210862729-78a52d3779a2?auto=format&fit=crop&w=900&q=80",
+      "/uniforme-educacion-fisica.jpeg",
     description:
       "Sudadera institucional, camiseta deportiva y tenis blancos. Diseñado con telas inteligentes que permiten la transpiración y libertad de movimiento.",
   },
