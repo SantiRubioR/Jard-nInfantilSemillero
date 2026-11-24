@@ -53,13 +53,13 @@ export default function AboutPage() {
                 key={uniform.title}
                 className="overflow-hidden rounded-[var(--radius-card)] border border-white/60 bg-white shadow-card"
               >
-                <div className="relative aspect-[4/3]">
+                <div className="relative aspect-[3/4]">
                   <Image
                     src={uniform.image}
                     alt={uniform.title}
                     fill
                     sizes="(max-width: 768px) 100vw, 33vw"
-                    className="object-cover"
+                    className="object-cover object-top"
                   />
                 </div>
                 <div className="p-5">
