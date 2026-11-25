@@ -55,32 +55,26 @@ Dominio:    https://tu-dominio.helioho.st
 4. La carpeta pública del dominio principal es **`httpdocs`**.
 5. Si usas un subdominio o dominio addon, los archivos van en una carpeta con el nombre del dominio, **no** en `httpdocs`.
 
-### Datos SFTP
+### Datos de conexión
 
-| Servidor | Host | Puerto |
-|---|---|---|
-| Johnny | `johnny.heliohost.org` | `1373` |
-| Tommy | `tommy2.heliohost.org` | `1373` |
-| Morty | `morty2.heliohost.org` | `1373` |
+| Servidor | Host | FTP | SFTP |
+|---|---|---|---|
+| Johnny | `johnny.heliohost.org` | `21` | `1373` |
+| Tommy | `tommy2.heliohost.org` | `21` | `1373` |
+| Morty | `morty2.heliohost.org` | `21` | `1373` |
 
-- Usuario: tu usuario de Plesk.
-- Contraseña: tu contraseña de Plesk.
-- Protocolo: **SFTP**.
+- Usuario y contraseña: los de Plesk.
+- Protocolo recomendado: **FTP** en el puerto `21`.
+
+> En la cuenta de Tommy, el SFTP del puerto `1373` muestra un home vacío y sin permisos de escritura. Para subir archivos usa **FTP `21`**.
 
 Para confirmar la ruta remota exacta:
 
 ```bash
-sftp -P 1373 tu_usuario@johnny.heliohost.org
+lftp -c "open ftp://tu_usuario@tommy2.heliohost.org:21; ls"
 ```
 
-Dentro de SFTP:
-
-```bash
-pwd
-ls
-```
-
-Debes ver `httpdocs`. Si conectas con Tommy, usa `tommy2.heliohost.org`.
+Debes ver `httpdocs`. La ruta remota se indica **sin barra inicial**: `httpdocs`.
 
 > El SSL es automático con Let's Encrypt mediante **SSL It!** de Plesk. Puede tardar un poco en emitirse.
 
@@ -89,15 +83,17 @@ Debes ver `httpdocs`. Si conectas con Tommy, usa `tommy2.heliohost.org`.
 - Archivo: `scripts/upload-heliohost.sh`.
 - Atajo de npm: `npm run deploy:heliohost`.
 - **No compila**: sube lo que ya exista en `out/`. Ejecuta `npm run build` antes.
-- Usa `lftp` por SFTP en el puerto `1373`.
+- Usa `lftp` por **FTP en el puerto `21`** (o SFTP con `--protocol sftp`).
 - Lee el usuario y la contraseña desde `~/.netrc`; la contraseña nunca está en el script.
 - Sube `out/` con `mirror -R`. Con `--delete`, borra en el servidor lo que ya no exista localmente.
+- Con `--check` verifica conexión y ruta remota **sin subir nada**.
 - Variables de entorno disponibles:
   - `HELIOHOST_HOST`
-  - `HELIOHOST_PORT`
+  - `HELIOHOST_PORT` (por defecto `21` para FTP y `1373` para SFTP)
+  - `HELIOHOST_PROTOCOL` (`ftp` por defecto)
   - `HELIOHOST_USER`
   - `HELIOHOST_REMOTE`
-- Flags: `--host`, `--port`, `--user`, `--remote`, `--local`, `--delete`.
+- Flags: `--host`, `--port`, `--protocol`, `--user`, `--remote`, `--local`, `--delete`, `--check`.
 
 La cuenta nueva solo necesita un bloque en `~/.netrc` para el host exacto y, si aplica, la ruta remota correcta.
 
@@ -137,9 +133,9 @@ Debe contener `index.html`, `_next/`, `admin/`, `blog/`, `sitemap.xml`, etc.
 
 ---
 
-## 5. Configurar el acceso SFTP
+## 5. Configurar el acceso FTP/SFTP
 
-El script lee la contraseña desde `~/.netrc`. Agrega un bloque para el servidor nuevo:
+El script lee la contraseña desde `~/.netrc`. Agrega un bloque para el servidor nuevo (sirve para FTP y SFTP, el puerto no va aquí):
 
 ```text
 machine johnny.heliohost.org
@@ -167,11 +163,13 @@ chmod 600 ~/.netrc
 
 ## 6. Subir el sitio
 
+> **Automático:** el workflow `.github/workflows/deploy.yml` compila y sube `out/` en cada merge a `main`. Consulta [15-despliegue-github-actions.md](15-despliegue-github-actions.md) para configurarlo. Los pasos de esta sección son para subidas manuales.
+
 ```bash
 ./scripts/upload-heliohost.sh
 ```
 
-El script sube `out/` a `httpdocs` en Johnny por defecto.
+El script sube por FTP (puerto `21`) a `httpdocs` en Johnny por defecto.
 
 Para Tommy:
 
@@ -179,10 +177,16 @@ Para Tommy:
 ./scripts/upload-heliohost.sh --host tommy2.heliohost.org --user tu_usuario
 ```
 
-Si la ruta remota no es `httpdocs`, indícala:
+Antes de subir, verifica la conexión y la ruta sin modificar el servidor:
 
 ```bash
-./scripts/upload-heliohost.sh --remote /ruta/absoluta/httpdocs
+./scripts/upload-heliohost.sh --check
+```
+
+Si la ruta remota no es `httpdocs`, indícala (sin barra inicial):
+
+```bash
+./scripts/upload-heliohost.sh --remote httpdocs
 ```
 
 La primera vez sube **sin** `--delete`. Cuando confirmes que todo está bien, puedes usar:

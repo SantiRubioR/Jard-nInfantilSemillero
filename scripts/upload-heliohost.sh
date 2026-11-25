@@ -2,34 +2,40 @@
 set -euo pipefail
 
 HOST="${HELIOHOST_HOST:-johnny.heliohost.org}"
-PORT="${HELIOHOST_PORT:-1373}"
+PROTOCOL="${HELIOHOST_PROTOCOL:-ftp}"
+PORT="${HELIOHOST_PORT:-}"
 USER="${HELIOHOST_USER:-}"
 REMOTE="${HELIOHOST_REMOTE:-httpdocs}"
 LOCAL="out"
 DELETE=0
+CHECK=0
 
 usage() {
   cat <<'EOF'
 Uso:
   ./scripts/upload-heliohost.sh [opciones] [archivo-o-carpeta]
 
-Por defecto sube la carpeta out/ a httpdocs en Johnny (plan gratuito).
+Por defecto sube la carpeta out/ a httpdocs por FTP (puerto 21).
 
 Opciones:
   -l, --local RUTA      Archivo o carpeta local (por defecto: out)
   -r, --remote RUTA     Ruta remota (por defecto: httpdocs)
-  -H, --host HOST       Host SFTP (por defecto: johnny.heliohost.org)
-  -p, --port PUERTO     Puerto SFTP (por defecto: 1373)
-  -u, --user USUARIO    Usuario SFTP (por defecto: se lee de ~/.netrc)
+  -H, --host HOST       Host de HelioHost (por defecto: johnny.heliohost.org)
+  -p, --port PUERTO     Puerto (por defecto: 21 para FTP, 1373 para SFTP)
+  -t, --protocol PROTO  Protocolo: ftp (por defecto) o sftp
+  -u, --user USUARIO    Usuario (por defecto: se lee de ~/.netrc)
   -d, --delete          Borrar en el servidor lo que no exista localmente
+  -c, --check           Verificar conexión y ruta remota sin subir nada
   -h, --help            Mostrar esta ayuda
 
 Ejemplos:
   ./scripts/upload-heliohost.sh
   ./scripts/upload-heliohost.sh -d
+  ./scripts/upload-heliohost.sh --check
   ./scripts/upload-heliohost.sh -H tommy2.heliohost.org -u TU_USUARIO
-  ./scripts/upload-heliohost.sh -l out -r /ruta/absoluta/httpdocs
+  ./scripts/upload-heliohost.sh -l out -r httpdocs
   ./scripts/upload-heliohost.sh -l public/index.html -r httpdocs/index.html
+  ./scripts/upload-heliohost.sh -t sftp -p 1373
 
 La contraseña se lee desde ~/.netrc, nunca desde este script.
 EOF
@@ -61,6 +67,14 @@ while [[ $# -gt 0 ]]; do
       DELETE=1
       shift
       ;;
+    -c|--check)
+      CHECK=1
+      shift
+      ;;
+    -t|--protocol)
+      PROTOCOL="${2:?Falta el protocolo (ftp o sftp)}"
+      shift 2
+      ;;
     -h|--help)
       usage
       exit 0
@@ -86,7 +100,21 @@ if ! command -v lftp >/dev/null 2>&1; then
   exit 1
 fi
 
-if [[ ! -e "$LOCAL" ]]; then
+case "$PROTOCOL" in
+  ftp)
+    DEFAULT_PORT=21
+    ;;
+  sftp)
+    DEFAULT_PORT=1373
+    ;;
+  *)
+    echo "Error: protocolo no soportado: $PROTOCOL (usa ftp o sftp)" >&2
+    exit 1
+    ;;
+esac
+PORT="${PORT:-$DEFAULT_PORT}"
+
+if [[ "$CHECK" -eq 0 && ! -e "$LOCAL" ]]; then
   echo "Error: no existe la ruta local: $LOCAL" >&2
   exit 1
 fi
@@ -128,10 +156,18 @@ trap 'rm -f "$TMP_SCRIPT"' EXIT
 {
   echo "set sftp:auto-confirm yes"
   echo "set net:max-retries 2"
-  echo "open sftp://${USER}@${HOST}:${PORT}"
+  echo "set cmd:fail-exit yes"
+  if [[ "$PROTOCOL" == "ftp" ]]; then
+    echo "set ftp:ssl-allow yes"
+  fi
+  echo "open ${PROTOCOL}://${USER}@${HOST}:${PORT}"
   echo "cd"
 
-  if [[ -d "$LOCAL" ]]; then
+  if [[ "$CHECK" -eq 1 ]]; then
+    printf 'cd "%s"\n' "$REMOTE"
+    echo "pwd"
+    echo "ls"
+  elif [[ -d "$LOCAL" ]]; then
     if [[ "$DELETE" -eq 1 ]]; then
       printf 'mirror -R --delete --verbose -X .DS_Store "%s" "%s"\n' "$LOCAL" "$REMOTE"
     else
@@ -149,19 +185,27 @@ trap 'rm -f "$TMP_SCRIPT"' EXIT
 } > "$TMP_SCRIPT"
 
 echo "HelioHost"
-echo "  Host:   $HOST"
-echo "  Puerto: $PORT"
-echo "  Usuario: $USER"
-echo "  Local:  $LOCAL"
-echo "  Remoto: $REMOTE"
-if [[ -d "$LOCAL" ]]; then
-  echo "  Modo:   carpeta (mirror)"
+echo "  Host:      $HOST"
+echo "  Protocolo: $PROTOCOL"
+echo "  Puerto:    $PORT"
+echo "  Usuario:   $USER"
+echo "  Local:     $LOCAL"
+echo "  Remoto:    $REMOTE"
+if [[ "$CHECK" -eq 1 ]]; then
+  echo "  Modo:      verificación (sin subir)"
+elif [[ -d "$LOCAL" ]]; then
+  echo "  Modo:      carpeta (mirror)"
 else
-  echo "  Modo:   archivo"
+  echo "  Modo:      archivo"
 fi
 if [[ "$DELETE" -eq 1 ]]; then
-  echo "  Delete: activado"
+  echo "  Delete:    activado"
 fi
 echo
 
 lftp -f "$TMP_SCRIPT"
+
+if [[ "$CHECK" -eq 1 ]]; then
+  echo
+  echo "Conexión y ruta remota verificadas. No se subió nada."
+fi
